@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chatdetailsscreen.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
+
 class ItemDetailsPage extends StatefulWidget {
   final String uid;
   final String community;
@@ -55,23 +57,14 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
             SizedBox(height: 8),
             Container(
               width: double.infinity,
-              child: Image.network(
-                widget.itemPic,
+              child: Image.memory(
+                base64Decode(widget.itemPic),
                 fit: BoxFit.cover,
               ),
             ),
             SizedBox(height: 8),
             ElevatedButton(
-              onPressed: () async {
-                // 创建初始消息
-                await FirebaseFirestore.instance.collection('messages').add({
-                  'item': widget.itemName,
-                  'sender': FirebaseAuth.instance.currentUser!.uid,
-                  'receiver': widget.uid,
-                  'text': 'Hi, I am interested in your item: ${widget.itemName}',
-                  'timestamp': FieldValue.serverTimestamp(),
-                });
-
+              onPressed: () {
                 // go to chatdetailspage
                 Navigator.push(
                   context,
@@ -85,7 +78,6 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
               },
               child: Text('Chat with Seller'),
             ),
-
           ],
         ),
       ),

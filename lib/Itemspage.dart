@@ -3,6 +3,40 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'itemdetailspage.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:geolocator/geolocator.dart';
+import 'dart:typed_data';
+
+
+Future<String> getDistanceToItem(String itemAddress) async {
+  try {
+    Position currentPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best);
+
+    final apiKey = 'AIzaSyB43pS0d30i-AkO4jZs7qUsMi0fupfzOAw';
+    final url =
+        'https://maps.googleapis.com/maps/api/directions/json?origin=${currentPosition.latitude},${currentPosition.longitude}&destination=$itemAddress&key=$apiKey';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+      if (jsonResponse['status'] == 'OK') {
+        return 'Distance: ${jsonResponse['routes'][0]['legs'][0]['distance']['text']}';
+      } else {
+        print('Error in API response: ${jsonResponse['status']}');
+        return 'Address: $itemAddress';
+      }
+    } else {
+      print('Error in API request: ${response.statusCode}');
+      return 'Address: $itemAddress';
+    }
+  } catch (e) {
+    print('Error getting location: $e');
+    return 'Address: $itemAddress';
+  }
+}
 
 final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -83,6 +117,8 @@ class ItemsStream extends StatelessWidget {
   }
 }
 
+
+
 class ItemCard extends StatelessWidget {
   final String uid;
   final String community;
@@ -108,6 +144,9 @@ class ItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 解码 Base64 编码的图片
+    final Uint8List decodedImage = base64Decode(itemPic);
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -141,7 +180,17 @@ class ItemCard extends StatelessWidget {
               SizedBox(height: 8),
               Text('Community: $community'),
               Text('Type: $itemType'),
-              Text('Address: $itemAddress'),
+              FutureBuilder<String>(
+                future: getDistanceToItem(itemAddress),
+                builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Text('Calculating distance...');
+                  } else {
+                    return Text(snapshot.data ?? 'Address: $itemAddress');
+                  }
+                },
+              ),
+
               Text('Posted at: ${timestamp.toDate()}'),
               SizedBox(height: 8),
               Text('Price: $price'),
@@ -150,8 +199,8 @@ class ItemCard extends StatelessWidget {
               SizedBox(height: 8),
               Container(
                 width: double.infinity,
-                child: Image.network(
-                  itemPic,
+                child: Image.memory(
+                  decodedImage,
                   fit: BoxFit.cover,
                 ),
               ),

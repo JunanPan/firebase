@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
 import 'itemdetailspage.dart';
 
 final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -73,8 +74,8 @@ class ItemCard extends StatelessWidget {
               SizedBox(height: 8),
               Container(
                 width: double.infinity,
-                child: Image.network(
-                  itemPic,
+                child: Image.memory(
+                  base64Decode(itemPic),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -187,3 +188,4 @@ class SearchItemsStream extends StatelessWidget {
     );
   }
 }
+

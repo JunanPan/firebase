@@ -1,10 +1,10 @@
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chatdetailsscreen.dart';
 import 'package:rxdart/rxdart.dart';
-
 
 final _firestore = FirebaseFirestore.instance;
 User? loggedInUser;
@@ -60,57 +60,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
       ),
     );
   }
-
 }
 
 class ChatListStream extends StatelessWidget {
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> filterUniqueConversations(
-      List<QueryDocumentSnapshot<Map<String, dynamic>>> allMessages) {
-    final uniqueConversations = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
-    for (final message in allMessages) {
-      if (!message.data().containsKey('item') ||
-          !message.data().containsKey('sender') ||
-          !message.data().containsKey('receiver') ||
-          !message.data().containsKey('text')||
-          !message.data().containsKey('timestamp')) {
-        print('Incomplete message document: ${message.data()}');
-        continue;
-      }
-      final itemName = message['item'];
-      final senderUid = message['sender'];
-      final receiverUid = message['receiver'];
-      final conversationId =
-      senderUid.compareTo(receiverUid) < 0 ? "$senderUid-$receiverUid" : "$receiverUid-$senderUid";
-      final existingMessage = uniqueConversations[conversationId];
-      if (existingMessage == null || existingMessage['timestamp'].toDate().compareTo(message['timestamp'].toDate()) < 0) {
-        uniqueConversations[conversationId] = message;
-      }
-    }
-    return uniqueConversations.values.toList();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final senderStream = _firestore
+    final chatStream = _firestore
         .collection('messages')
-        .where('sender', isEqualTo: loggedInUser!.uid)
-        .orderBy('timestamp', descending: true)
-        .snapshots()
-        .map((querySnapshot) => querySnapshot.docs);
-
-    final receiverStream = _firestore
-        .collection('messages')
-        .where('receiver', isEqualTo: loggedInUser!.uid)
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((querySnapshot) => querySnapshot.docs);
 
     return StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
-      stream: Rx.combineLatest2(senderStream, receiverStream, (List<QueryDocumentSnapshot<Map<String, dynamic>>> senderMessages, List<QueryDocumentSnapshot<Map<String, dynamic>>> receiverMessages) {
-        final allMessages = [...senderMessages, ...receiverMessages];
-        allMessages.sort((a, b) => b['timestamp'].compareTo(a['timestamp'].toDate()));
-        return allMessages;
-      }),
+      stream: chatStream,
       initialData: [],
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -121,12 +83,19 @@ class ChatListStream extends StatelessWidget {
           );
         }
 
-        final allMessages = snapshot.data ?? [];
+        final messages = snapshot.data ?? [];
+        Set<String> itemNames = Set<String>();
+        Map<String, QueryDocumentSnapshot<Map<String, dynamic>>> lastMessages = {};
 
-        final uniqueConversations = filterUniqueConversations(allMessages);
-        bool isEmptyData = uniqueConversations.isEmpty;
+        for (final message in messages) {
+          if ((message['sender'] == loggedInUser!.uid || message['receiver'] == loggedInUser!.uid) &&
+              !itemNames.contains(message['item'])) {
+            itemNames.add(message['item']);
+            lastMessages[message['item']] = message;
+          }
+        }
 
-        if (isEmptyData) {
+        if (itemNames.isEmpty) {
           return Expanded(
             child: Center(
               child: Text("No chats available"),
@@ -134,28 +103,16 @@ class ChatListStream extends StatelessWidget {
           );
         }
 
-
-
-        List<Widget> chatListItems = [];
-        for (var message in uniqueConversations) {
-          final itemName = message['item'];
-          final receiverUid = loggedInUser!.uid == message['sender'] ? message['receiver'] : message['sender'];
-          final text = message['text'];
-
-          chatListItems.add(
-            ChatListItem(
+        return Column(
+          children: itemNames.map((itemName) {
+            final message = lastMessages[itemName];
+            return ChatListItem(
               key: ValueKey(itemName),
               itemName: itemName,
-              receiverUid: receiverUid,
-              text: text,
-            ),
-          );
-        }
-        return Expanded(
-          child: ListView(
-            padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
-            children: chatListItems,
-          ),
+              receiverUid: loggedInUser!.uid == message!['sender'] ? message['receiver'] : message['sender'],
+              text: message['text'],
+            );
+          }).toList(),
         );
       },
     );
@@ -163,12 +120,13 @@ class ChatListStream extends StatelessWidget {
 }
 
 
+
 class ChatListItem extends StatelessWidget {
   final String itemName;
   final String receiverUid;
   final String text;
   const ChatListItem({
-  Key? key,
+    Key? key,
     required this.itemName,
     required this.receiverUid,
     required this.text,
@@ -200,9 +158,10 @@ class ChatListItem extends StatelessWidget {
             );
           } else {
             return ListTile(
-              title: Text("Chat"),
-              subtitle: Text("Item: $itemName\nLast message: $text"),
+              title: Text("Chat for $itemName"),
+              subtitle: Text("Last message: $text"),
             );
+
           }
         },
       ),
