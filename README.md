@@ -1,16 +1,44 @@
-# firebase
+# ThriftHub
 
-A new Flutter project.
+ThriftHub is a mobile application that allows users to buy and sell second-hand items within their local community. The app provides an easy and convenient way for users to list and browse items, communicate with potential buyers or sellers, and complete transactions securely.
+
+## Features
+
+- User authentication and profile management
+- Item listing and browsing with photo uploads
+- In-app messaging for communication between buyers and sellers
+- User review and rating system for buyer and seller feedback
+- Item location-based search for items
+- Built for both iOS and Android platforms
+- This project is a starting point for a Flutter application.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+To get started with ThriftHub, you can clone the repository and run it locally on your device.
 
-A few resources to get you started if this is your first Flutter project:
+## Installing
+Clone the repository:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```
+git clone https://github.com/JunanPan/thrifthub.git
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Install dependencies:
+
+```
+npm install
+```
+
+Run the app:
+
+```
+flutter run
+```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Thank You !!
+
+
