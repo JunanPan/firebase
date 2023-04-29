@@ -28,6 +28,9 @@ Install dependencies:
 ```
 npm install
 ```
+```
+flutter pub get
+```
 
 Run the app:
 
